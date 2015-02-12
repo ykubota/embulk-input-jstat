@@ -143,7 +143,8 @@ module Embulk
         end
       }.flatten
 
-      #TODO: erase default when the debug is finished.
+      paths = paths - config.param('done', :array, default: [])
+
       option = config.param('option', :string, default: 'gcutil')
       if option =~ /^\-/
         option[0] = ''
@@ -151,8 +152,6 @@ module Embulk
       if !JSTAT_COLUMNS.has_key?(option.to_sym)
         raise "Unknown option: #{option}. Specify a stat option of jstat correctly."
       end
-
-      threads = config.param('threads', :integer, default: 1)
 
       columns = JSTAT_COLUMNS[option.to_sym].each_with_index.map do |column, index|
         stat, type = column
@@ -167,9 +166,12 @@ module Embulk
       end
 
       task = {'paths' => paths}
+      ff = []
 
-      commit_reports = yield(task, columns, threads)
-      puts "Commit reports = #{commit_reports.to_json}"
+      #TODO: Now, force to set threads as amount of found files. Need a better idea.
+      report = yield(task, columns, paths.length)
+
+      config.merge( report['done'].flatten.compact )
 
       return {}
     end
@@ -179,42 +181,40 @@ module Embulk
     end
 
     def run
-      paths = @task['paths']
-      not_jstat_files = []
+      unless path = @task['paths'][@index]
+        return { 'done' => [] }
+      end
 
-      paths.each do |path|
-        File.read(path).each_line do |line|
-          stats = line.strip.split(/\s+/)
+      File.read(path).each_line.with_index(0) do |line, i|
+        stats = line.strip.split(/\s+/)
 
-          # maybe not jstat file if a number of column is not match.
-          if stats.size != @schema.size
-            not_jstat_files << path
-            break
-          end
-
-          # ignore column heading line
-          next unless stats[0] != @schema[0]['name']
-
-          page = []
-          @schema.each_with_index do |s, i|
-            case s['type']
-            when :string
-              page << stats[i]
-            when :long
-              page << stats[i].to_i
-            when :double
-              page << stats[i].to_f
-            else
-              raise "unknown type: #{s['type']}"
-            end
-          end
-          @page_builder.add(page)
+        # maybe not jstat file if a number of column is not match.
+        if stats.size != @schema.size
+          i == 0 ? break : next
         end
+
+        # ignore column heading line
+        next if i == 0 && stats[0] == @schema[0]['name']
+
+        page = []
+        @schema.each_with_index do |s, i|
+          case s['type']
+          when :string
+            page << stats[i]
+          when :long
+            page << stats[i].to_i
+          when :double
+            page << stats[i].to_f
+          else
+            raise "unknown type: #{s['type']}"
+          end
+        end
+        @page_builder.add(page)
       end
       @page_builder.finish
 
       {  # commit report
-        "commited_jstat_files" => paths - not_jstat_files
+        'done' => path
       }
     end
   end
