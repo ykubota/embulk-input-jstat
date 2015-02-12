@@ -18,20 +18,17 @@ Specify in your config.yml file
 ```yaml
 in:
   type: jstat
-  paths: [/tmp, /path/to/jstat_files]
+  paths: [/tmp, /path/to/jstat_files, /other/path/to/jstats_files]
   option: -gcutil
-  timestamp: yes
-  threads: 2
+  timestamp: false
 ```
 
 - type: specify this plugin as `jstat`.
-- paths: specify path where jstat files(\*.log) are. (optional, default: /tmp)
+- paths: specify paths where jstat files(\*.log) are. (optional, default: /tmp)
 - option: specify a stat option of jstat, e.g., -gcutil. (optional, default: -gcutil)
-<!-- - timestamp: specify whether your jstat files include a timestamp column or not. (optional, default: yes) -->
-- threads: number of thread (optional, default: 1)
+- timestamp: specify whether your jstat files include a timestamp column or not. (optional, default: false)
 
 ## TODO
 
 - support JDK7, JDK6.
-- support timestamp (jstat -t).
 

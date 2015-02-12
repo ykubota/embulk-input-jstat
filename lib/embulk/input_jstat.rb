@@ -136,24 +136,28 @@ module Embulk
     }
 
     def self.transaction(config, &control)
+      # find jstat files and push to "task".
       paths = config.param('paths', :array, default: ['/tmp']).map { |path|
         next [] unless Dir.exists?(path)
         Dir.entries(path).sort.select{|f| f.match(/^.+\.log$/)}.map do |file|
           File.expand_path(File.join(path, file))
         end
       }.flatten
-
+      # remove checked jstat files by other threads.
       paths = paths - config.param('done', :array, default: [])
+      task = {'paths' => paths}
 
+      # generate schema by parsing a given options of jstat.
       option = config.param('option', :string, default: 'gcutil')
-      if option =~ /^\-/
-        option[0] = ''
-      end
+      option[0] = '' if option =~ /^\-/
       if !JSTAT_COLUMNS.has_key?(option.to_sym)
-        raise "Unknown option: #{option}. Specify a stat option of jstat correctly."
+        raise "Wrong configuration: \"option: #{option}\". Specify a stat option of jstat correctly."
       end
 
-      columns = JSTAT_COLUMNS[option.to_sym].each_with_index.map do |column, index|
+      timestamp = config.param('timestamp', :bool, default: false)
+
+      i = timestamp ? 1 : 0
+      columns = JSTAT_COLUMNS[option.to_sym].each.with_index(i).map do |column, index|
         stat, type = column
         case type
         when "string"
@@ -165,8 +169,9 @@ module Embulk
         end
       end
 
-      task = {'paths' => paths}
-      ff = []
+      if timestamp
+        columns.unshift(Column.new(0, "Timestamp", :double))
+      end
 
       #TODO: Now, force to set threads as amount of found files. Need a better idea.
       report = yield(task, columns, paths.length)
@@ -190,6 +195,7 @@ module Embulk
 
         # maybe not jstat file if a number of column is not match.
         if stats.size != @schema.size
+          # if not header, maybe injected other log, e.g. console.
           i == 0 ? break : next
         end
 
@@ -201,6 +207,7 @@ module Embulk
           case s['type']
           when :string
             page << stats[i]
+          # TODO: If not numeric, raise error.
           when :long
             page << stats[i].to_i
           when :double
