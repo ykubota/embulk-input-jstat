@@ -3,6 +3,12 @@
 [Embulk](https://github.com/embulk/embulk) input plugin for [jstat](http://docs.oracle.com/javase/8/docs/technotes/tools/unix/jstat.html).
 Now, this plugin supports only JDK8.
 
+## Requirements
+
+- Embulk 0.4.1 or later.
+- bundler 1.7 or later.
+- rake 10.0 or later.
+
 ## Installation
 
 Run this command with your embulk binary.
