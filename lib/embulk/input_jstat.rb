@@ -137,20 +137,22 @@ module Embulk
 
     def self.transaction(config, &control)
       # find jstat files and push to "task".
-      paths = config.param('paths', :array, default: ['/tmp']).map { |path|
+      paths = config.param('paths', :array, default: ['/tmp']).map do |path|
         next [] unless Dir.exists?(path)
-        Dir.entries(path).sort.select{|f| f.match(/^.+\.log$/)}.map do |file|
+        Dir.entries(path).sort.select do |f|
+          f =~ /^.+\.log$/
+        end.map do |file|
           File.expand_path(File.join(path, file))
         end
-      }.flatten
+      end.flatten
       # remove checked jstat files by other threads.
-      paths = paths - config.param('done', :array, default: [])
+      paths -= config.param('done', :array, default: [])
       task = {'paths' => paths}
 
       # generate schema by parsing a given options of jstat.
       option = config.param('option', :string, default: 'gcutil')
       option[0] = '' if option =~ /^\-/
-      if !JSTAT_COLUMNS.has_key?(option.to_sym)
+      unless JSTAT_COLUMNS.has_key?(option.to_sym)
         raise "Wrong configuration: \"option: #{option}\". Specify a stat option of jstat correctly."
       end
 
@@ -160,17 +162,17 @@ module Embulk
       columns = JSTAT_COLUMNS[option.to_sym].each.with_index(i).map do |column, index|
         stat, type = column
         case type
-        when "string"
+        when 'string'
           Column.new(index, stat.to_s, :string)
-        when "int", "long"
+        when 'int', 'long'
           Column.new(index, stat.to_s, :long)
-        when "double", "float"
+        when 'double', 'float'
           Column.new(index, stat.to_s, :double)
         end
       end
 
       if timestamp
-        columns.unshift(Column.new(0, "Timestamp", :double))
+        columns.unshift(Column.new(0, 'Timestamp', :double))
       end
 
       #TODO: Now, force to set threads as amount of found files. Need a better idea.
@@ -186,6 +188,7 @@ module Embulk
     end
 
     def run
+      # if no path, returns empty.
       unless path = @task['paths'][@index]
         return { 'done' => [] }
       end
