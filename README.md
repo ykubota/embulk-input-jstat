@@ -1,20 +1,14 @@
-# Embulk::Plugin::Input::Jstat
+# Embulk::Input::Jstat
 
 [Embulk](https://github.com/embulk/embulk) input plugin for [jstat](http://docs.oracle.com/javase/8/docs/technotes/tools/unix/jstat.html).
 Now, this plugin supports only JDK8.
-
-## Requirements
-
-- Embulk 0.4.1 or later.
-- bundler 1.7 or later.
-- rake 10.0 or later.
 
 ## Installation
 
 Run this command with your embulk binary.
 
 ```ruby
-$ java -jar embulk.jar gem install embulk-plugin-input-jstat
+$ embulk gem install embulk-input-jstat
 ```
 
 ## Configuration
@@ -40,7 +34,7 @@ in:
 
 ## Contributing
 
-1. Fork it ( https://github.com/ykubota/embulk-plugin-input-jstat/fork )
+1. Fork it ( https://github.com/ykubota/embulk-input-jstat/fork )
 2. Create your feature branch (`git checkout -b my-new-feature`)
 3. Commit your changes (`git commit -am 'Add some feature'`)
 4. Push to the branch (`git push origin my-new-feature`)

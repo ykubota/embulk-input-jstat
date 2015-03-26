@@ -1,3 +1,5 @@
+# -*- coding:utf-8 -*-
+
 module Embulk
   class InputJstat < InputPlugin
     require 'json'
